@@ -1,0 +1,16 @@
+- name: Copy Kubernetes Cronjob manifest
+  copy:
+    src: etcd-backup-job.yaml
+    dest: /opt/kubernetes/etcd-backup-job.yaml
+    mode: 0644
+
+- name: Deploy cronjob on Kubernetes
+  shell: kubectl apply -f /opt/kubernetes/etcd-backup-job.yaml
+
+
+- name: Permission to Prometheus NFS Directory
+  file:
+    path: /data
+    state: directory
+    recurse: yes
+    mode: '777'

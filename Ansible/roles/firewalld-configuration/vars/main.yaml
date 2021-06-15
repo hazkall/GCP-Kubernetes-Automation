@@ -1,0 +1,37 @@
+---
+rules_k8s:
+  - 6443/tcp
+  - 2379-2380/tcp
+  - 10248/tcp
+  - 10250/tcp
+  - 10251/tcp
+  - 10252/tcp
+  - 30000-32767/tcp
+  - 80/tcp
+  - 8080/tcp
+
+rules_calico:
+  - 179/tcp
+  - 5473/tcp
+  - 443/tcp
+  - 4789/udp
+
+
+rules_nfs:
+  - nfs
+  - mountd
+  - rpc-bind
+
+rules_prometheus:
+  - 9090/tcp
+  - 9091/tcp
+  - 9092/tcp
+  - 9093/tcp
+  - 9094/tcp
+  - 9100/tcp
+  - 9153/tcp
+
+rules_grafana:
+  - 3000/tcp
+
+

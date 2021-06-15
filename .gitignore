@@ -1,0 +1,7 @@
+Terraform/credentials.json
+Terraform/.terraform
+Terraform/.terraform.lock.hcl
+.terraform.lock.hcl
+Dockerfile
+Ansible/hosts
+Terraform/terraform_plan

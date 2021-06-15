@@ -1,0 +1,75 @@
+---
+# Firewalld configuration
+
+- name: Firewalld implementation to K8S
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ rules_k8s }}"
+
+
+- name: Firewalld implementation to calico
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ rules_calico }}"
+
+- name: Firewalld implementation to nfs
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ rules_nfs }}"
+
+
+- name: Firewalld implementation to dns
+  ansible.posix.firewalld:
+    service: dns
+    permanent: yes
+    state: enabled
+    immediate: yes
+ 
+
+- name: Firewalld implementation to prometheus
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ rules_prometheus }}"
+
+  
+- name: Firewalld implementation to grafana
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ rules_grafana }}"
+
+- name: Firewalld implementation of masquerade
+  ansible.posix.firewalld:
+    permanent: yes
+    masquerade: yes
+    state: enabled
+    immediate: yes
+  
+- name: reload firewalld
+  service:
+    name: firewalld
+    state: restarted
+
+
+
+
+
+
+
+
+
+

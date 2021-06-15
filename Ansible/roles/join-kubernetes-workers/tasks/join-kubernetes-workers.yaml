@@ -1,0 +1,22 @@
+- name: msg
+  debug:
+    msg: "[WORKER] K8S_TOKEN_HOLDER - O token is {{ hostvars['K8S_TOKEN_HOLDER']['token'] }}"
+- name: msg
+  debug:
+    msg: "[WORKER] K8S_TOKEN_HOLDER - O hash is {{ hostvars['K8S_TOKEN_HOLDER']['hash'] }}"
+
+#Cluster Reset
+- name: Kubeadm reset
+  shell: kubeadm reset --force
+  register: kubeadm_reset
+
+- name: Kubeadm join
+  shell: 
+    kubeadm join --token={{ hostvars['K8S_TOKEN_HOLDER']['token'] }} 
+    --discovery-token-ca-cert-hash sha256:{{ hostvars['K8S_TOKEN_HOLDER']['hash'] }} 
+    {{ K8S_MASTER_NODE }}:{{ K8S_API_SECURE_PORT }}
+  register: kubeadm_join
+
+- name: ''
+  debug:
+    msg: "{{ kubeadm_join.stdout }}"

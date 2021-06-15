@@ -1,0 +1,5 @@
+# Helm Chart Configuration
+# Change PV to 4Gi
+server:
+  persistentVolume:
+    size: 4Gi

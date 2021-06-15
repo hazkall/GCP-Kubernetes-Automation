@@ -1,0 +1,22 @@
+# Helm Chart Configuration
+### Add Prometheus Resource
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-operator-server
+      access: proxy
+      isDefault: true
+
+### Add PVC to Grafana persist datas
+
+persistence:
+  type: pvc
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  size: 4Gi
+  finalizers:
+    - kubernetes.io/pvc-protection

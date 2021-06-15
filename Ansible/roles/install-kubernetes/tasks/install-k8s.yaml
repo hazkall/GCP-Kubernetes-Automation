@@ -1,0 +1,143 @@
+---
+### Set SElinux to Permissive
+- name: Permissive SElinux
+  selinux:
+    state: permissive
+    policy: targeted
+    
+- name: Install NFS Server to Persistent Volume (K8S) and openssl
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - nfs-utils
+    - openssl
+    - bash-completion
+
+- name: Configure ports to NFS on /etc/sysconfig/nfs (Redhat Base)
+  lineinfile:
+    backup: yes
+    path: /etc/sysconfig/nfs
+    backrefs: yes
+    regexp: '^#{{ item.regex }}=.*$'
+    line: "{{ item.line }}"
+  loop:
+    - {regex: 'MOUNTD_PORT', line: 'MOUNTD_PORT=892'}
+    - {regex: 'STATD_PORT', line: 'STATD_PORT=2046'}
+    - {regex: 'LOCKD_TCPPORT', line: 'LOCKD_TCPPORT=4045'}
+    - {regex: 'LOCKD_UDPPORT', line: 'LOCKD_UDPPORT=4045'}  
+
+### Kubernetes and CRI-O Network Modules
+
+- name: Add modules of kernel for K8S
+  blockinfile:
+    path: /etc/modules-load.d/crio.conf
+    block: |
+      overlay
+      br_netfilter
+    create: yes
+
+- name: Ensure Network modules
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+### IPTables Config
+
+- name: Configuration IPTables for CRI-O and K8S
+  blockinfile:
+    path: /etc/sysctl.d/99-kubernetes-cri.conf
+    block: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.ipv4.ip_forward                 = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+    create: yes
+  register: iptables
+
+- name: Sysctl --system
+  shell: sysctl --system
+  when: iptables is changed  
+
+- name: Add CRI-O repository
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - { url: "{{ crio_url[0] }}", dest: "/etc/yum.repos.d/devel:kubic:libcontainers:stable.repo" }
+    - { url: "{{ crio_url[1] }}", dest: "/etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:{{ CRIO_VERSION }}.repo" }
+
+
+### Install CRI-O
+
+- name: Install CRI-O
+  yum:
+    name: cri-o
+    state: present
+    update_cache: yes
+  
+- name: Remove default CNI of CRI-O (conflicts with Calico PodNetwork CNI)
+  file:
+    path: /etc/cni/net.d/100-crio-bridge.conf
+    state: absent
+
+### Install Kubernetes
+
+- name: Add yum repository for K8S
+  blockinfile:
+    path: /etc/yum.repos.d/kubernetes.repo
+    block: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl= {{ k8s_baseurl }}
+      enabled=1
+      gpgcheck=1
+      repo_gpgcheck=1
+      gpgkey={{ k8s_key[0] }} {{ k8s_key[1] }}
+      exclude=kubelet kubeadm kubectl
+    create: yes
+
+- name: Install Kubernetes
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    disable_excludes: kubernetes
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl  
+  
+# Get Kubeadm version to kubeadm-config.yaml
+
+- name: Remove old Kubelet Extra Args (Redhat Base)
+  lineinfile:
+    backup: yes
+    path: /etc/sysconfig/kubelet
+    backrefs: yes
+    regexp: '^KUBELET_EXTRA_ARGS=$'
+    state: absent
+
+- name: Configure Kubelet Extra Args to CRI-O (Redhat Base)
+  blockinfile:
+    path: /etc/sysconfig/kubelet 
+    block: |
+      KUBELET_EXTRA_ARGS=--container-runtime=remote
+      --cgroup-driver=systemd
+      --container-runtime-endpoint='unix:///var/run/crio/crio.sock'
+      --runtime-request-timeout=5
+  
+- name: Kubeadm Version
+  shell: kubeadm version |sed 's/,/\n/g'| grep "GitVersion" | cut -d':' -f2 | tr -d '"' | tr -d 'v'
+  register: k8s_version
+  notify: 
+    - Enable Kubelet
+    - Enable CRI-O
+
+- name: Hold kubeadmversion
+  add_host:
+    name: K8S_VERSION_HOLDER
+    version: "{{ k8s_version.stdout }}"
+  

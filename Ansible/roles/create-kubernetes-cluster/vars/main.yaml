@@ -1,0 +1,5 @@
+kubeadm_version: "{{ hostvars['K8S_VERSION_HOLDER']['version'] }}"
+
+calico:
+  - "https://docs.projectcalico.org/manifests/tigera-operator.yaml"
+  - "https://docs.projectcalico.org/manifests/custom-resources.yaml"

@@ -1,0 +1,18 @@
+---
+CRIO_OS: CentOS_7
+CRIO_VERSION: 1.21
+
+
+########## Repos to RedHat Base ##########
+crio_url:
+  - "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{{ CRIO_OS }}/devel:kubic:libcontainers:stable.repo"
+  - "https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:{{ CRIO_VERSION }}/{{ CRIO_OS }}/devel:kubic:libcontainers:stable:cri-o:{{ CRIO_VERSION }}.repo"
+  
+k8s_key:
+  - "https://packages.cloud.google.com/yum/doc/yum-key.gpg" 
+  - "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+
+k8s_baseurl: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64"
+########## Repos to RedHat Base ##########
+
+  

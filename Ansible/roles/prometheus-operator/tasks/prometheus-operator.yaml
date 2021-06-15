@@ -1,0 +1,33 @@
+- name: Create Namespace Monitoring
+  shell: kubectl create namespace monitoring
+  ignore_errors: true
+
+- name: Add Helm repo of Prometheus Operator
+  shell: |
+    helm repo add prometheus-community {{ prometheus }}
+    helm repo add kube-state-metrics {{ metrics }}
+    helm repo update
+  become_user: "{{ linux_user }}"
+
+- name: Copy Persistent Volume Kubernetes Manifest
+  template:
+    src: persistent-volumes.yaml.j2
+    dest: /opt/kubernetes/persistent-volumes.yaml
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Add Persistent Volumes to Prometheus
+  shell: kubectl apply -f /opt/kubernetes/persistent-volumes.yaml
+  ignore_errors: true
+
+- name: Copy helm custom value.yaml to template
+  copy:
+    src: prometheus_helm.yaml
+    dest: /opt/kubernetes/prometheus_helm.yaml
+    mode: 0644
+
+- name: Install Prometheus Operator
+  shell: helm install prometheus-operator -f /opt/kubernetes/prometheus_helm.yaml prometheus-community/prometheus --namespace monitoring
+  ignore_errors: true
+  become_user: "{{ linux_user }}"

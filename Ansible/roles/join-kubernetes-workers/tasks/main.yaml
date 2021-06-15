@@ -1,0 +1,2 @@
+---
+- include: join-kubernetes-workers.yaml

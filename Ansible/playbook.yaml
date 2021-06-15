@@ -1,0 +1,82 @@
+---
+- hosts: kubernetes
+  become: yes
+  user: "{{ linux_user }}"
+  pre_tasks:
+# Ensure python on instances
+  - name: 'Update repo'
+    raw: 'yum update -y'
+    args:
+      warn: false
+  - name: 'Install python'
+    raw: 'yum install -y python3'
+    args:
+      warn: false
+# Configure hostname to instances
+  - name: Set hostname to node
+    hostname:
+      name: "{{ ansible_host }}"
+      use: systemd
+    register: set_hostname
+  - name: Instance reboot
+    reboot:
+      pre_reboot_delay: 20
+      post_reboot_delay: 120  
+    when: set_hostname is changed    
+### End of prepare
+  roles:
+    - role: firewalld-configuration
+      tags: ["firewalld-configuration"]
+
+- hosts: kubernetes
+  become: yes
+  user: "{{ linux_user }}"
+  roles:
+    - role: install-kubernetes
+      tags: ["install-kubernetes"]
+
+- hosts: k8s-masters
+  become: yes
+  user: "{{ linux_user }}"
+  roles:
+    - role: create-kubernetes-cluster
+      tags: ["create-kubernetes-cluster"]
+
+- hosts: k8s-workers
+  become: yes
+  user: "{{ linux_user }}"
+  roles:
+    - role: join-kubernetes-workers
+      tags: ["join-kubernetes-workers"]
+
+- hosts: k8s-masters
+  become: yes
+  user: "{{ linux_user }}"
+  roles:
+    - role: install-helm
+      tags: ["install-helm"]
+
+- hosts: k8s-masters
+  become: yes
+  user: "{{ linux_user }}"
+  roles:
+    - role: prometheus-operator
+      tags: ["prometheus-operator"]
+
+- hosts: k8s-masters
+  become: yes
+  user: "{{ linux_user }}"
+  roles:
+    - role: grafana-operator
+      tags: ["grafana-operator"]
+
+
+- hosts: k8s-masters
+  become: yes
+  user: "{{ linux_user }}"
+  roles:
+    - role: kubernetes-backup-etcd-cronjob
+      tags: ["kubernetes-backup-etcd-cronjob"]
+
+
+      

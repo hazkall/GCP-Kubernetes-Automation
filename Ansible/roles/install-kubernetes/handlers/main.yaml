@@ -1,0 +1,14 @@
+---
+- name: Enable CRI-O
+  systemd:
+    name: crio
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Enable Kubelet
+  service:
+    name: kubelet
+    enabled: yes
+    state: started
+    

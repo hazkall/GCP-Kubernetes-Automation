@@ -1,0 +1,4 @@
+
+prometheus: https://prometheus-community.github.io/helm-charts
+
+metrics: https://kubernetes.github.io/kube-state-metrics

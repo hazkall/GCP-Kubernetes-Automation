@@ -1,0 +1,16 @@
+- name: Add Helm repo of Grafana Operator
+  shell: |
+    helm repo add grafana "{{ grafana }}"
+    helm repo update
+  become_user: "{{ linux_user }}"
+
+- name: Copy helm custom value.yaml to template
+  copy:
+    src: grafana_helm.yaml
+    dest: /opt/kubernetes/grafana_helm.yaml
+    mode: 0644
+
+- name: Install Grafana Operator
+  shell: helm install -f /opt/kubernetes/grafana_helm.yaml grafana-operator grafana/grafana --namespace monitoring
+  ignore_errors: true
+  become_user: "{{ linux_user }}"

@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubectl-backup  
+  namespace: kube-system
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: backup-etcd
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: 
+      - pods/exec
+      - pods
+    verbs: 
+      - create
+      - get      
+      - list
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backup-etcd
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: kubectl-backup 
+roleRef:
+  kind: Role
+  name: backup-etcd
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-etcd
+  namespace: kube-system
+spec:
+  schedule: 30 14 * * 3 #“At 14:30 on Wednesday.” 
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: kubectl-backup
+          containers:
+          - name: backup-etcd
+            image: bitnami/kubectl
+            imagePullPolicy: IfNotPresent
+            command:
+              - /bin/bash
+              - -c
+              - |
+                kubectl exec -n kube-system \
+                $(kubectl get pod -n kube-system \
+                -o=jsonpath='{.items[*].metadata.name}' | \
+                sed 's/[[:space:]]/\n/g' | \
+                grep '^etcd') -- sh -c "ETCDCTL_API=3 \
+                ETCDCTL_CACERT=/etc/kubernetes/pki/etcd/ca.crt \
+                ETCDCTL_CERT=/etc/kubernetes/pki/etcd/server.crt \
+                ETCDCTL_KEY=/etc/kubernetes/pki/etcd/server.key \
+                etcdctl --endpoints=https://127.0.0.1:2379 \
+                snapshot save /var/lib/etcd/snapshot.db"
+          restartPolicy: OnFailure

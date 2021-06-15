@@ -1,0 +1,5 @@
+- name: Start NFS Server
+  service:
+    name: nfs-server
+    enabled: yes
+    state: started

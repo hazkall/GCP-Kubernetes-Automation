@@ -1,0 +1,122 @@
+---
+- name: ""
+  debug:
+    msg: "[Master] K8S_VERSION_HOLDER K8S version is {{ hostvars['K8S_VERSION_HOLDER']['version'] }}"
+
+# NFS Configuration to master
+
+- name: Creating NFS Directory
+  file:
+    path: /data
+    state: directory
+    mode: '777'
+
+- name: Configure NFS Server to Persistent Volume (K8S)
+  lineinfile:
+    path: /etc/exports
+    line: "/data *(rw,sync,no_root_squash,subtree_check)"
+  
+- name: Enable Exportfs for NFS
+  shell: exportfs -ar
+  notify: Start NFS Server
+
+
+### Copy the kubeadm configuration file
+- name: Creating Kubernetes Manifest Directory
+  file:
+    path: /opt/kubernetes
+    state: directory
+    mode: '775'
+
+- name: Copy Kubeadm-config
+  template:
+    src: kubeadm-config.yaml.j2
+    dest: /opt/kubernetes/kubeadm-config.yaml
+    owner: root
+    group: root
+    mode: '644'
+
+#### Cluster reset
+
+- name: Kubeadm reset
+  shell: kubeadm reset --force
+
+### Pull of ControlPlan container images (K8S)
+- name: Kubeadm Control Plane Images Pull
+  shell: kubeadm config images pull
+
+### Cluster Init
+- name: Kubeadm init
+  shell: kubeadm init --config=/opt/kubernetes/kubeadm-config.yaml --upload-certs
+
+
+### Root and User Kubectl config
+- name: Creating .kube directory
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "/home/{{ linux_user }}/.kube"
+    - "~/.kube"
+
+
+- name: Linking admin.conf file to ~/.kube/config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    remote_src: yes
+    dest: "{{ item }}"
+    mode: '0600'
+  loop:
+    - "~/.kube/config"
+    - "/home/{{ linux_user }}/.kube/config"
+
+- name: Change owner of kubeconfig
+  file:
+    path: /home/{{ linux_user }}/.kube/config
+    owner: "{{ linux_user }}"
+    group: "{{ linux_user }}"
+    mode: '0600'
+
+
+# Configure Calico PodNetwork
+
+- name: Deployment of Calico Pod Network
+  shell: | 
+    kubectl apply -f {{ calico[0] }}
+    kubectl apply -f {{ calico[1] }}
+  register: calico
+
+- name: Install Kubernetes autocomplete
+  shell: echo 'source <(kubectl completion bash)' >>~/.bashrc
+  become_user: "{{ linux_user }}"
+
+# Tokens to join Workers
+
+- name: Get tokens to join workers
+  shell: kubeadm token list | grep 'authentication,signing' | awk '{if(NR==1) print$1}'
+  register: k8s_token
+
+- name: CA Hash
+  shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+  register: k8s_master_ca_hash
+
+
+- name: Add token and hash to the dummy host
+  add_host:
+    name: K8S_TOKEN_HOLDER
+    token: "{{ k8s_token.stdout }}"
+    hash: "{{ k8s_master_ca_hash.stdout }}"
+
+
+# Debug Messages to admin
+
+- name: ""
+  debug:
+    msg: "{{ calico.stdout }}"
+
+- name: ""
+  debug:
+    msg: "[Master] K8S_TOKEN_HOLDER K8S token is {{ hostvars['K8S_TOKEN_HOLDER']['token'] }}"
+- name: ""
+  debug:
+    msg: "[Master] K8S_TOKEN_HOLDER K8S Hash is  {{ hostvars['K8S_TOKEN_HOLDER']['hash'] }}"

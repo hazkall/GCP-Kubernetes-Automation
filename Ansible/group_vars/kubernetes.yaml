@@ -1,0 +1,1 @@
+linux_user: felipe # This user will execute all playbook's, it need privileged access on servers
