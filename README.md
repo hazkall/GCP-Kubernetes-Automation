@@ -2,11 +2,11 @@
 # Kubernetes Cluster on Google Cloud Plataform using Compute Engine
 
 - Tecnologies
-  - Terraform <terraform.io>
-  - Ansible <www.ansible.com>
-  - Kubernetes <kubernetes.io>
-  - Calico Project <docs.projectcalico.org/getting-started/kubernetes/quickstart>
-  - CRI-O <cri-o.io>
+  - Terraform <https://terraform.io>
+  - Ansible <https://ansible.com>
+  - Kubernetes <https://kubernetes.io>
+  - Calico Project <https://docs.projectcalico.org/getting-started/kubernetes/quickstart>
+  - CRI-O <https://cri-o.io>
 
 - Pre-req
   - CentOS 7 or 8 machine
